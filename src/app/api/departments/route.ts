@@ -44,8 +44,8 @@ export async function GET() {
         departments: departmentsResult,
         chartData: departmentStatsForChart,
         totalDepartments: departmentsResult.length,
-        activeDepartments: departmentsResult.filter((dept: any) => 
-          parseInt(dept.intern_count) > 0
+        activeDepartments: departmentsResult.filter(dept => 
+          parseInt(String((dept as Record<string, unknown>).intern_count)) > 0
         ).length
       }
     });

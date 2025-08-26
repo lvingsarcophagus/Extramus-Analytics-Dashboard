@@ -63,7 +63,7 @@ export function GenderDistributionChart() {
             { gender: 'Other', count: 4, percentage: 5 }
           ]);
         }
-      } catch (err) {
+      } catch {
         // Use demo data silently for performance
         // Always provide demo data on error
         setData([

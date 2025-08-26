@@ -46,6 +46,8 @@ interface SearchFilters {
   status?: string;
   nationality?: string;
   gender?: string;
+  month?: string;
+  year?: string;
 }
 
 // Generate demo data for fallback
@@ -152,8 +154,28 @@ export function InternSearchComponent() {
     department: '',
     status: '',
     nationality: '',
-    gender: ''
+    gender: '',
+    month: '',
+    year: ''
   });
+
+  // For year/month dropdowns
+  const [years, setYears] = useState<string[]>([]);
+  const months = [
+    { value: '', label: 'All months' },
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' },
+  ];
 
   const fetchData = async () => {
     try {
@@ -197,13 +219,14 @@ export function InternSearchComponent() {
       
       setAllInterns(interns);
       setFilteredInterns(interns);
-      
       // Extract unique values for filters
       const uniqueDepartments = [...new Set(interns.map((i: InternData) => i.department_name).filter(Boolean))] as string[];
       const uniqueNationalities = [...new Set(interns.map((i: InternData) => i.nationality).filter(Boolean))] as string[];
-      
       setDepartments(uniqueDepartments.sort());
       setNationalities(uniqueNationalities.sort());
+      // Extract unique years from start_date
+      const uniqueYears = [...new Set(interns.map(i => i.start_date?.slice(0,4)).filter(Boolean))] as string[];
+      setYears(uniqueYears.sort());
       
     } catch (err) {
       console.error('Error fetching intern data:', err);
@@ -232,7 +255,9 @@ export function InternSearchComponent() {
       department: undefined,
       status: undefined,
       nationality: undefined,
-      gender: undefined
+      gender: undefined,
+      month: undefined,
+      year: undefined
     });
   };
 
@@ -288,6 +313,13 @@ export function InternSearchComponent() {
       filtered = filtered.filter(intern => 
         intern.gender.toLowerCase() === filters.gender!.toLowerCase()
       );
+    }
+    // Month/year filter (by start_date)
+    if (filters.year) {
+      filtered = filtered.filter(intern => intern.start_date?.slice(0,4) === filters.year);
+    }
+    if (filters.month) {
+      filtered = filtered.filter(intern => intern.start_date?.slice(5,7) === filters.month);
     }
     
     setFilteredInterns(filtered);
@@ -362,7 +394,7 @@ export function InternSearchComponent() {
           </div>
 
           {/* Filter Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-20">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 relative z-20">
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
@@ -427,6 +459,38 @@ export function InternSearchComponent() {
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Year</Label>
+              <Select
+                value={filters.year}
+                onValueChange={value => setFilters(prev => ({ ...prev, year: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All years" />
+                </SelectTrigger>
+                <SelectContent className="z-[160]">
+                  {years.map(year => (
+                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Month</Label>
+              <Select
+                value={filters.month}
+                onValueChange={value => setFilters(prev => ({ ...prev, month: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All months" />
+                </SelectTrigger>
+                <SelectContent className="z-[150]">
+                  {months.filter(month => month.value !== '').map(month => (
+                    <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
