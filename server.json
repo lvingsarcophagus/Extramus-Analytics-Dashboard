@@ -1,0 +1,22 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "AWS",
+            "Group": "Servers",
+            "Host": "ec2-13-49-23-125.eu-north-1.compute.amazonaws.com",
+            "Port": 5432,
+            "MaintenanceDB": "LatestDB",
+            "Username": "nayan",
+            "UseSSHTunnel": 0,
+            "TunnelPort": "22",
+            "TunnelAuthentication": 0,
+            "TunnelKeepAlive": 0,
+            "KerberosAuthentication": false,
+            "ConnectionParameters": {
+                "sslmode": "disable",
+                "connect_timeout": 10
+            },
+            "Tags": []
+        }
+    }
+}
