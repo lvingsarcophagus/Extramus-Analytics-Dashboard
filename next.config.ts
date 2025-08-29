@@ -7,9 +7,11 @@ const nextConfig: NextConfig = {
     domains: ['localhost'],
   },
 
+  // External packages for server components
+  serverExternalPackages: ['pg', 'googleapis'],
+
   // Experimental features for better compatibility
   experimental: {
-    serverComponentsExternalPackages: ['pg', 'googleapis'],
   },
 
   // Configure headers for better caching and CORS
