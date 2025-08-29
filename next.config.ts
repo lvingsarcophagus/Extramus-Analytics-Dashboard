@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable static optimization for better Netlify compatibility
-  output: 'standalone',
-
   // Configure images for Netlify
   images: {
     unoptimized: true,
@@ -34,16 +31,6 @@ const nextConfig: NextConfig = {
             value: 'Content-Type, Authorization',
           },
         ],
-      },
-    ];
-  },
-
-  // Configure rewrites for API routes
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: '/api/:path*',
       },
     ];
   },

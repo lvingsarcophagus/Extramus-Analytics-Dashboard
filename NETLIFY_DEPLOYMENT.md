@@ -39,7 +39,7 @@ NEXT_PUBLIC_APP_URL=https://your-netlify-site.netlify.app
 The `netlify.toml` file is already configured with:
 - **Build Command**: `npm run build`
 - **Publish Directory**: `.next`
-- **Node Version**: 18.17.0
+- **Node Version**: 18.18.0 (minimum required for Next.js)
 
 ### Common Issues & Solutions
 
