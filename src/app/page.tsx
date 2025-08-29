@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { FilterOptions, ExportOptions } from '@/types';
 import { calculateDashboardMetrics, getAvailableFilters } from '@/lib/analytics';
 import { useAuth } from '@/contexts/AuthContext';
-import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { ExportDialog } from '@/components/dashboard/ExportDialog';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DatabaseConnection } from '@/components/dashboard/DatabaseConnection';
@@ -13,7 +12,6 @@ import { LiveMetricsDisplay } from '@/components/dashboard/LiveMetricsDisplay';
 import { SimpleDepartmentChart } from '@/components/charts/SimpleDepartmentChart';
 import { SimpleMonthlyChart } from '@/components/charts/SimpleMonthlyChart';
 import { SimpleStatusChart } from '@/components/charts/SimpleStatusChart';
-import { GenderDistributionChart } from '@/components/charts/GenderDistributionChart';
 import { NationalityDistributionChart } from '@/components/charts/NationalityDistributionChart';
 import { InternshipDurationChart } from '@/components/charts/InternshipDurationChart';
 import { PerformanceMetricsChart } from '@/components/charts/PerformanceMetricsChart';
@@ -47,25 +45,93 @@ export default function Dashboard() {
       return;
     }
 
-    // TODO: Replace with real data export from API
-    // Removed console.log for performance
-    
-    // Simulate export delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    if (options.format === 'csv') {
-      // TODO: Fetch real data from API and generate CSV
-      const csvData = 'Department,Interns,Status\nData Science,10,Active\nEngineering,8,Active';
-      const blob = new Blob([csvData], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'analytics-report.csv';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } else {
-      // TODO: Implement PDF generation with real data
-      alert('PDF report would be generated here');
+    try {
+      if (options.format === 'csv') {
+        // Fetch real data from API
+        const response = await fetch('/api/interns');
+        if (!response.ok) {
+          throw new Error('Failed to fetch intern data');
+        }
+        const interns = await response.json();
+
+        // Convert to CSV format
+        const csvHeaders = ['Name', 'Email', 'Department', 'Status', 'Nationality', 'Gender', 'Start Date', 'End Date', 'Supervisor'];
+        const csvData = [
+          csvHeaders.join(','),
+          ...interns.map((intern: any) => [
+            `"${intern.name || ''}"`,
+            `"${intern.email || ''}"`,
+            `"${intern.department_name || ''}"`,
+            `"${intern.status || ''}"`,
+            `"${intern.nationality || ''}"`,
+            `"${intern.gender || ''}"`,
+            `"${intern.start_date || ''}"`,
+            `"${intern.end_date || ''}"`,
+            `"${intern.supervisor || ''}"`
+          ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvData], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'interns-report.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+        alert('CSV export completed successfully!');
+      } else if (options.format === 'googleSheets') {
+        // Fetch real intern data from API
+        const response = await fetch('/api/interns');
+        if (!response.ok) {
+          throw new Error('Failed to fetch intern data');
+        }
+        const apiResponse = await response.json();
+        
+        // Extract interns array from the response
+        const interns = apiResponse.data?.interns || [];
+        
+        if (!Array.isArray(interns)) {
+          throw new Error('Invalid intern data format received from API');
+        }
+
+        // Transform data for Google Sheets export
+        const exportData = interns.map((intern: any) => ({
+          name: intern.name || '',
+          email: intern.email || '',
+          department: intern.department_name || '',
+          status: intern.status || '',
+          nationality: intern.nationality || '',
+          gender: intern.gender || '',
+          start_date: intern.start_date || '',
+          end_date: intern.end_date || ''
+        }));
+
+        // Send to Google Sheets API
+        const sheetsResponse = await fetch('/api/export-google-sheets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            data: exportData,
+            type: 'interns',
+          }),
+        });
+
+        if (!sheetsResponse.ok) {
+          const errorData = await sheetsResponse.json();
+          throw new Error(errorData.error || 'Export failed');
+        }
+
+        const result = await sheetsResponse.json();
+        alert(result.message || 'Data exported to Google Sheets successfully!');
+      } else if (options.format === 'pdf') {
+        // TODO: Implement PDF generation with real data
+        alert('PDF export feature coming soon! Use CSV or Google Sheets for now.');
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -87,107 +153,141 @@ export default function Dashboard() {
       {/* Header */}
       <DashboardHeader
         timeRangeBadge={filters.timeRange.period === 'year' ? 'Yearly View' : 'Monthly View'}
-        onExport={hasPermission('export') ? () => {
-          const dialog = document.querySelector('[data-export-dialog]') as HTMLButtonElement;
-          dialog?.click();
-        } : undefined}
       />
 
       <div className="flex">
         {/* Sidebar with Filters */}
-        <aside className="w-80 border-r bg-card h-[calc(100vh-4rem)] p-6 overflow-y-auto">
-          <FilterPanel
-            filters={filters}
-            onFiltersChange={setFilters}
-            availableOptions={availableOptions}
-          />
-          
-          {/* Role-based access info */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-sm">Access Level</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span>Overview</span>
-                <Badge variant={hasPermission('overview') ? 'default' : 'secondary'} className="text-xs">
-                  {hasPermission('overview') ? 'Allowed' : 'Restricted'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span>Intern Data</span>
-                <Badge variant={hasPermission('interns') ? 'default' : 'secondary'} className="text-xs">
-                  {hasPermission('interns') ? 'Allowed' : 'Restricted'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span>Housing</span>
-                <Badge variant={hasPermission('housing') ? 'default' : 'secondary'} className="text-xs">
-                  {hasPermission('housing') ? 'Allowed' : 'Restricted'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span>Demographics</span>
-                <Badge variant={hasPermission('demographics') ? 'default' : 'secondary'} className="text-xs">
-                  {hasPermission('demographics') ? 'Allowed' : 'Restricted'}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+          <aside className="w-80 h-[calc(100vh-4rem)] p-6 overflow-y-auto bg-gradient-to-b from-gray-50 via-white to-gray-100 border-r shadow-lg flex flex-col items-center justify-start">
+            <Card className="w-full max-w-xs mt-4 mb-8 modern-card border border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-t-md">
+                <CardTitle className="text-base font-semibold text-blue-700 flex items-center gap-2">
+                  <span className="inline-block bg-blue-200 rounded-full p-1 mr-2"><svg width="18" height="18" fill="none"><circle cx="9" cy="9" r="8" fill="#3B82F6" /></svg></span>
+                  Access Level
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 py-4 px-6">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600">Overview</span>
+                  <Badge variant={hasPermission('overview') ? 'default' : 'secondary'} className="text-xs px-2 py-1 rounded-full">
+                    {hasPermission('overview') ? 'Allowed' : 'Restricted'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600">Intern Data</span>
+                  <Badge variant={hasPermission('interns') ? 'default' : 'secondary'} className="text-xs px-2 py-1 rounded-full">
+                    {hasPermission('interns') ? 'Allowed' : 'Restricted'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600">Housing</span>
+                  <Badge variant={hasPermission('housing') ? 'default' : 'secondary'} className="text-xs px-2 py-1 rounded-full">
+                    {hasPermission('housing') ? 'Allowed' : 'Restricted'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600">Demographics</span>
+                  <Badge variant={hasPermission('demographics') ? 'default' : 'secondary'} className="text-xs px-2 py-1 rounded-full">
+                    {hasPermission('demographics') ? 'Allowed' : 'Restricted'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 overflow-y-auto h-[calc(100vh-4rem)]">
+        <main className="flex-1 p-6 overflow-y-auto h-[calc(100vh-4rem)] modern-section">
           <div className="space-y-8">
-            {/* Database Connection Status */}
+            {/* System Status - Always visible for health monitoring */}
             <DatabaseConnection />
 
-            {/* Live Metrics Dashboard */}
+            {/* Quick Actions - Easy access to key functions */}
+            <Card className="modern-card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-blue-900">Quick Actions</h3>
+                    <p className="text-sm text-blue-700">Export data or manage interns</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <ExportDialog
+                      onExport={handleExport}
+                      className="btn-primary text-white border-0"
+                    />
+                    <Button
+                      variant="outline"
+                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      onClick={() => {
+                        const searchTab = document.querySelector('[value="search"]') as HTMLElement;
+                        searchTab?.click();
+                      }}
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Manage Interns
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Key Performance Indicators - Most important metrics first */}
             <LiveMetricsDisplay />
 
-            {/* Charts Section */}
+            {/* Primary Data Visualization - Department distribution and housing overview */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SimpleDepartmentChart />
-              <RealTimeDataDisplay 
-                title="Live Housing Data" 
-                endpoint="/api/housing"
-              />
+              <div className="modern-card">
+                <SimpleDepartmentChart />
+              </div>
+              <div className="modern-card">
+                <RealTimeDataDisplay
+                  title="Live Housing Data"
+                  endpoint="/api/housing"
+                />
+              </div>
             </div>
 
-            {/* Tabbed Content */}
-            <Tabs defaultValue="search" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 h-auto">
-                {hasPermission('overview') && <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>}
-                {hasPermission('interns') && <TabsTrigger value="interns" className="text-sm">Analytics</TabsTrigger>}
+            {/* Detailed Analysis Tabs - Organized by priority and workflow */}
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className={`grid w-full h-auto ${
+                (() => {
+                  const tabCount = (hasPermission('overview') ? 1 : 0) +
+                                   (hasPermission('interns') ? 2 : 0) +
+                                   (hasPermission('housing') ? 1 : 0);
+                  return tabCount === 1 ? 'grid-cols-1' :
+                         tabCount === 2 ? 'grid-cols-2' :
+                         tabCount === 3 ? 'grid-cols-3' : 'grid-cols-4';
+                })()
+              }`}>
+                {hasPermission('overview') && <TabsTrigger value="overview" className="text-sm">📊 Overview</TabsTrigger>}
                 {hasPermission('interns') && <TabsTrigger value="search" className="text-sm">🔍 Search</TabsTrigger>}
-                {hasPermission('housing') && <TabsTrigger value="housing" className="text-sm">Housing</TabsTrigger>}
+                {hasPermission('interns') && <TabsTrigger value="analytics" className="text-sm">� Analytics</TabsTrigger>}
+                {hasPermission('housing') && <TabsTrigger value="housing" className="text-sm">🏠 Housing</TabsTrigger>}
               </TabsList>
 
               {hasPermission('overview') && (
                 <TabsContent value="overview" className="space-y-6">
                   {/* Primary Charts Row */}
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <SimpleDepartmentChart />
-                    <SimpleMonthlyChart />
-                    <SimpleStatusChart />
+                    <div className="modern-card"><SimpleDepartmentChart /></div>
+                    <div className="modern-card"><SimpleMonthlyChart /></div>
+                    <div className="modern-card"><SimpleStatusChart /></div>
                   </div>
-                  
                   {/* Additional Charts Row */}
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <GenderDistributionChart />
-                    <InternshipDurationChart />
-                    <PerformanceMetricsChart />
+                    {/* <div className="modern-card"><GenderDistributionChart /></div> */}
+                    <div className="modern-card"><InternshipDurationChart /></div>
+                    <div className="modern-card"><PerformanceMetricsChart /></div>
                   </div>
-                  
-                  <RealTimeDataDisplay 
-                    title="Detailed Intern Analytics" 
-                    endpoint="/api/interns"
-                  />
+                  <div className="modern-card">
+                    <RealTimeDataDisplay 
+                      title="Detailed Intern Analytics" 
+                      endpoint="/api/interns"
+                    />
+                  </div>
                 </TabsContent>
               )}
 
               {hasPermission('interns') && (
-                <TabsContent value="interns" className="space-y-6">
+                <TabsContent value="analytics" className="space-y-6">
                   {/* Main Analytics Charts */}
                   <div className="grid gap-6 md:grid-cols-2">
                     {hasPermission('demographics') ? (
@@ -210,7 +310,7 @@ export default function Dashboard() {
                   {/* Secondary Analytics Charts */}
                   {hasPermission('demographics') && (
                     <div className="grid gap-6 md:grid-cols-2">
-                      <GenderDistributionChart />
+                      {/* <GenderDistributionChart /> */}
                       <SimpleStatusChart />
                     </div>
                   )}
@@ -288,13 +388,6 @@ export default function Dashboard() {
               )}
             </Tabs>
 
-            {/* Hidden Export Dialog Trigger */}
-            {hasPermission('export') && (
-              <div className="hidden">
-                <ExportDialog onExport={handleExport} />
-                <Button data-export-dialog className="hidden">Hidden Export Trigger</Button>
-              </div>
-            )}
           </div>
         </main>
       </div>

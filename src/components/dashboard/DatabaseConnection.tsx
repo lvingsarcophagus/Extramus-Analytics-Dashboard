@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Database, RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Database, RefreshCw, CheckCircle, XCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 
 interface DatabaseStatus {
   connected: boolean;
@@ -21,6 +21,7 @@ interface DatabaseStatus {
 export function DatabaseConnection() {
   const [status, setStatus] = useState<DatabaseStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isDatabaseAvailable, setIsDatabaseAvailable] = useState(true);
 
   const testConnection = async () => {
     setLoading(true);
@@ -28,12 +29,18 @@ export function DatabaseConnection() {
       const response = await fetch('/api/test-connection');
       const data = await response.json();
       setStatus(data);
+
+      // Also check our internal database status via API
+      const statusResponse = await fetch('/api/database-status');
+      const statusData = await statusResponse.json();
+      setIsDatabaseAvailable(statusData.available);
     } catch (error) {
       console.error('Connection test error:', error);
       setStatus({
         connected: false,
         message: 'Failed to test connection'
       });
+      setIsDatabaseAvailable(false);
     } finally {
       setLoading(false);
     }
@@ -59,6 +66,19 @@ export function DatabaseConnection() {
   };
 
   useEffect(() => {
+    // Check initial database status via API
+    const checkInitialStatus = async () => {
+      try {
+        const statusResponse = await fetch('/api/database-status');
+        const statusData = await statusResponse.json();
+        setIsDatabaseAvailable(statusData.available);
+      } catch (error) {
+        console.error('Error checking initial database status:', error);
+        setIsDatabaseAvailable(false);
+      }
+    };
+
+    checkInitialStatus();
     testConnection();
   }, []);
 
@@ -119,6 +139,20 @@ export function DatabaseConnection() {
         {status?.message && (
           <div className="text-sm text-muted-foreground">
             <strong>Status:</strong> {status.message}
+          </div>
+        )}
+
+        {!isDatabaseAvailable && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-yellow-800">Demo Mode Active</p>
+                <p className="text-yellow-700">
+                  Database connection failed. Showing sample data for demonstration purposes.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

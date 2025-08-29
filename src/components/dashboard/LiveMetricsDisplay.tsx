@@ -41,22 +41,32 @@ export function LiveMetricsDisplay() {
         throw new Error('API returned error');
       }
 
-      const totalInterns = internsData.data.interns.length;
-      const activeInterns = internsData.data.interns.filter((intern: any) => 
-        intern.normalized_status === 'active'
+      // Validate and sanitize data
+      const interns = Array.isArray(internsData.data.interns) ? internsData.data.interns : [];
+      const departmentStats = Array.isArray(internsData.data.departmentStats) ? internsData.data.departmentStats : [];
+      const occupancyStats = housingData.data.occupancyStats || {};
+
+      const totalInterns = interns.length;
+      const activeInterns = interns.filter((intern: any) =>
+        intern?.normalized_status?.toLowerCase() === 'active'
       ).length;
-      const completedInterns = internsData.data.interns.filter((intern: any) => 
-        intern.normalized_status === 'completed'
+      const completedInterns = interns.filter((intern: any) =>
+        intern?.normalized_status?.toLowerCase() === 'completed'
       ).length;
+
+      // Validate housing data
+      const totalRooms = Math.max(0, parseInt(String(occupancyStats.total_rooms)) || 0);
+      const occupiedRooms = Math.max(0, Math.min(totalRooms, parseInt(String(occupancyStats.occupied_rooms)) || 0));
+      const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
       setMetrics({
         totalInterns,
         activeInterns,
         completedInterns,
-        totalRooms: parseInt(housingData.data.occupancyStats.total_rooms) || 0,
-        occupiedRooms: parseInt(housingData.data.occupancyStats.occupied_rooms) || 0,
-        occupancyRate: parseFloat(housingData.data.occupancyStats.occupancy_rate) || 0,
-        departments: internsData.data.departmentStats.length
+        totalRooms,
+        occupiedRooms,
+        occupancyRate,
+        departments: departmentStats.length
       });
 
       setLastUpdated(new Date());

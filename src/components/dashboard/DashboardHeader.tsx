@@ -18,13 +18,11 @@ import { BarChart3, Settings, LogOut, User } from 'lucide-react';
 interface DashboardHeaderProps {
   title?: string;
   timeRangeBadge?: string;
-  onExport?: () => void;
 }
 
 export function DashboardHeader({ 
   title = "Extramus Analytics Dashboard", 
-  timeRangeBadge,
-  onExport 
+  timeRangeBadge
 }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
 
@@ -67,12 +65,6 @@ export function DashboardHeader({
           
           <UserSwitcher />
           
-          {onExport && (
-            <Button variant="outline" size="sm" onClick={onExport}>
-              Export Report
-            </Button>
-          )}
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">

@@ -140,7 +140,29 @@ The application includes demo users for testing different role permissions:
 - **Audit Logging**: Export activities are tracked
 - **Session Management**: Secure user authentication
 
-## 🔧 Development
+## � Google Sheets Export Setup
+
+The dashboard supports exporting data directly to Google Sheets. To enable this feature:
+
+### Prerequisites
+- Google Cloud Console account
+- Google Sheets API enabled
+- Service Account credentials
+
+### Quick Setup
+1. Follow the detailed guide in `GOOGLE_SHEETS_SETUP.md`
+2. Copy `.env.local.example` to `.env.local`
+3. Fill in your service account credentials
+4. Restart the development server
+
+### Required Environment Variables
+```env
+GOOGLE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----"
+GOOGLE_SHEET_ID=your-google-sheet-id-here
+```
+
+## �🔧 Development
 
 ### Available Scripts
 

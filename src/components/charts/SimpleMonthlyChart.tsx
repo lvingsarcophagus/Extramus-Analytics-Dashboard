@@ -38,19 +38,29 @@ export function SimpleMonthlyChart() {
         
         const result = await response.json();
         if (result.success && result.data.monthlyStats) {
-          const chartData = result.data.monthlyStats.map((item: {
-            month: string;
-            interns_started: string | number;
-            interns_completed: string | number;
-          }) => ({
-            month: new Date(item.month).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'short' 
-            }),
-            started: parseInt(String(item.interns_started)) || 0,
-            completed: parseInt(String(item.interns_completed)) || 0
-          }));
-          setData(chartData);
+          const chartData = result.data.monthlyStats
+            .filter((item: any) => item && typeof item === 'object' && item.month)
+            .map((item: {
+              month: string;
+              interns_started: string | number;
+              interns_completed: string | number;
+            }) => {
+              const date = new Date(item.month);
+              const isValidDate = !isNaN(date.getTime());
+
+              return {
+                month: isValidDate ? date.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short'
+                }) : item.month,
+                started: Math.max(0, parseInt(String(item.interns_started)) || 0),
+                completed: Math.max(0, parseInt(String(item.interns_completed)) || 0)
+              };
+            })
+            .filter((item: MonthlyData) => item.started >= 0 && item.completed >= 0)
+            .sort((a: MonthlyData, b: MonthlyData) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+          setData(chartData.length > 0 ? chartData : []);
         } else {
           // Fallback to demo data if API fails
           setData([

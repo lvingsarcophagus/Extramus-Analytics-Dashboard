@@ -40,12 +40,18 @@ export function SimpleDepartmentChart() {
         
         const result = await response.json();
         if (result.success && result.data.chartData) {
-          const chartData = result.data.chartData.map((item: any, index: number) => ({
-            department_name: item.department_name,
-            value: parseInt(item.value) || 0,
-            color: COLORS[index % COLORS.length]
-          }));
-          setData(chartData);
+          const chartData = result.data.chartData
+            .filter((item: any) => item && typeof item === 'object' && item.department_name && typeof item.value === 'number')
+            .map((item: any, index: number) => ({
+              department_name: String(item.department_name).trim(),
+              value: Math.max(0, parseInt(String(item.value)) || 0),
+              color: COLORS[index % COLORS.length]
+            }))
+            .filter((item: DepartmentData) => item.value > 0 && item.department_name.length > 0)
+            .sort((a: DepartmentData, b: DepartmentData) => b.value - a.value)
+            .slice(0, 10); // Limit to top 10 departments
+
+          setData(chartData.length > 0 ? chartData : []);
         } else {
           // Fallback to demo data if API fails
           setData([

@@ -184,16 +184,26 @@ export function InternSearchComponent() {
       
       // Set a timeout for the request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
-      const response = await fetch('/api/interns', {
-        signal: controller.signal,
-      });
-      
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      let response;
+      try {
+        response = await fetch('/api/interns', {
+          signal: controller.signal,
+        });
+      } catch (err) {
+        setError('Network error or request timed out. Using demo data.');
+        const demoData = generateDemoInternData();
+        setAllInterns(demoData);
+        setFilteredInterns(demoData);
+        setLoading(false);
+        clearTimeout(timeoutId);
+        return;
+      }
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
-        // If API fails, use demo data
+        setError('API error: Unable to fetch intern data. Using demo data.');
         const demoData = generateDemoInternData();
         setAllInterns(demoData);
         setFilteredInterns(demoData);
@@ -225,7 +235,7 @@ export function InternSearchComponent() {
       setDepartments(uniqueDepartments.sort());
       setNationalities(uniqueNationalities.sort());
       // Extract unique years from start_date
-      const uniqueYears = [...new Set(interns.map(i => i.start_date?.slice(0,4)).filter(Boolean))] as string[];
+  const uniqueYears = [...new Set(interns.map((i: InternData) => i.start_date?.slice(0,4)).filter(Boolean))] as string[];
       setYears(uniqueYears.sort());
       
     } catch (err) {
@@ -287,7 +297,7 @@ export function InternSearchComponent() {
     
     if (filters.name) {
       filtered = filtered.filter(intern => 
-        intern.name.toLowerCase().includes(filters.name.toLowerCase())
+        intern.name && intern.name.toLowerCase().includes(filters.name.toLowerCase())
       );
     }
     
@@ -311,7 +321,7 @@ export function InternSearchComponent() {
     
     if (filters.gender) {
       filtered = filtered.filter(intern => 
-        intern.gender.toLowerCase() === filters.gender!.toLowerCase()
+        intern.gender && intern.gender.toLowerCase() === filters.gender!.toLowerCase()
       );
     }
     // Month/year filter (by start_date)

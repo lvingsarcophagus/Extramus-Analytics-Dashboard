@@ -1,3 +1,4 @@
+import 'server-only';
 import { Pool, PoolConfig, PoolClient } from 'pg';
 
 // Function to safely decode password with special characters
@@ -19,40 +20,42 @@ const dbConfig: PoolConfig = {
   user: process.env.DB_USER,
   password: getDecodedPassword(),
   ssl: process.env.DB_SSL_MODE === 'disable' ? false : { rejectUnauthorized: false },
-  max: 5, // Further reduced pool size
-  min: 1, // Minimum connections to maintain
-  idleTimeoutMillis: 15000, // Close idle clients after 15 seconds
-  connectionTimeoutMillis: 8000, // Connection timeout 8 seconds
-  statement_timeout: 15000, // Query timeout 15 seconds
-  query_timeout: 15000, // Query timeout 15 seconds
+  max: 3, // Reduced pool size to prevent connection exhaustion
+  min: 0, // No minimum connections to allow full shutdown
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 15000, // Connection timeout 15 seconds
+  statement_timeout: 30000, // Query timeout 30 seconds
+  query_timeout: 30000, // Query timeout 30 seconds
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000,
+  keepAliveInitialDelayMillis: 15000,
+  allowExitOnIdle: true, // Allow pool to close when idle
 };
 
-// Create a global connection pool
+// Create a global connection pool - only on server side
 let pool: Pool | null = null;
 
-export function getPool(): Pool {
+export async function getPool(): Promise<Pool> {
+  if (typeof window !== 'undefined') {
+    throw new Error('Database operations are not available on the client side');
+  }
+
   if (!pool) {
+    // Use dynamic import to avoid build-time issues
+    const { Pool } = await import('pg');
     pool = new Pool(dbConfig);
-    
+
     // Handle pool errors
     pool.on('error', (err) => {
       console.error('Unexpected error on idle client:', err);
       // Reset pool on error
       pool = null;
     });
-
-    // Remove verbose connection logging for performance
-    // pool.on('connect', () => {
-    //   console.log('New database connection established');
-    // });
-
-    // pool.on('remove', () => {
-    //   console.log('Database connection removed from pool');
-    // });
   }
-  
+
+  if (!pool) {
+    throw new Error('Failed to create database pool');
+  }
+
   return pool;
 }
 
@@ -60,7 +63,7 @@ export function getPool(): Pool {
 export async function testConnection(): Promise<boolean> {
   let client: PoolClient | null = null;
   try {
-    const pool = getPool();
+    const pool = await getPool();
     client = await pool.connect();
     const result = await client.query('SELECT NOW() as current_time');
     // Only log in development mode for performance
@@ -88,43 +91,97 @@ export async function executeQuery(
   text: string,
   params?: (string | number | boolean | Date)[]
 ): Promise<Record<string, unknown>[]> {
+  if (typeof window !== 'undefined') {
+    throw new Error('Database operations are not available on the client side');
+  }
+
   let client: PoolClient | null = null;
-  let retries = 2;
-  
+  let retries = 3; // Increased retries
+
   while (retries > 0) {
     try {
-      const pool = getPool();
+      const pool = await getPool();
       client = await pool.connect();
       const result = await client.query(text, params);
       return result.rows;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorCode = error instanceof Error && 'code' in error ? (error as Error & { code: string }).code : undefined;
-      
-      console.error(`Query execution failed (${retries} retries left):`, error);
-      
+
+      console.error(`Query execution failed (${retries} retries left):`, errorMessage);
+
       // Reset pool on connection errors
-      if (errorCode === 'ECONNRESET' || errorCode === 'ENOTFOUND' || errorMessage.includes('timeout')) {
+      if (errorCode === 'ECONNRESET' || errorCode === 'ENOTFOUND' ||
+          errorMessage.includes('timeout') || errorMessage.includes('terminated') ||
+          errorMessage.includes('pool after calling end')) {
         if (pool) {
           await pool.end().catch(() => {});
           pool = null;
         }
       }
-      
+
       retries--;
       if (retries === 0) {
         throw new Error(`Database query failed: ${errorMessage}`);
       }
-      
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Exponential backoff: wait longer between retries
+      const waitTime = (3 - retries) * 2000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     } finally {
       if (client) {
-        client.release();
+        try {
+          client.release();
+        } catch (releaseError) {
+          console.warn('Error releasing client:', releaseError);
+        }
         client = null;
       }
     }
   }
-  
+
   throw new Error('Query execution failed after all retries');
+}
+
+// Global flag to track database availability
+let isDatabaseAvailable = true;
+
+// Check database availability
+export async function checkDatabaseAvailability(): Promise<boolean> {
+  try {
+    await testConnection();
+    isDatabaseAvailable = true;
+    return true;
+  } catch {
+    isDatabaseAvailable = false;
+    return false;
+  }
+}
+
+// Get database availability status
+export function getDatabaseStatus(): boolean {
+  return isDatabaseAvailable;
+}
+
+// Safe query execution with fallback
+export async function safeExecuteQuery(
+  text: string,
+  params?: (string | number | boolean | Date)[],
+  fallbackData?: Record<string, unknown>[]
+): Promise<Record<string, unknown>[]> {
+  try {
+    const result = await executeQuery(text, params);
+    isDatabaseAvailable = true;
+    return result;
+  } catch (error) {
+    console.warn('Database query failed, using fallback data:', error);
+    isDatabaseAvailable = false;
+
+    if (fallbackData) {
+      return fallbackData;
+    }
+
+    // Return empty array as last resort
+    return [];
+  }
 }

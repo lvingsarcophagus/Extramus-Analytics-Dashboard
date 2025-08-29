@@ -82,7 +82,7 @@ export interface DashboardMetrics {
 }
 
 export interface ExportOptions {
-  format: 'pdf' | 'csv';
+  format: 'pdf' | 'csv' | 'googleSheets';
   includeCharts: boolean;
   sections: Array<'overview' | 'interns' | 'projects' | 'housing'>;
   dateRange: {
