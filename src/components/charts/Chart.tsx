@@ -35,8 +35,8 @@ export function Chart({ title, description, data, type, colors = DEFAULT_COLORS,
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+              <YAxis allowDecimals={false} />
+              <Tooltip formatter={(value) => [value, 'Value']} />
               <Bar dataKey="value" fill={colors[0]} />
             </BarChart>
           </ResponsiveContainer>

@@ -48,6 +48,23 @@ interface SearchFilters {
   gender?: string;
   month?: string;
   year?: string;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+}
+
+interface InternSearchComponentProps {
+  externalFilters?: {
+    timeRange?: {
+      start: Date;
+      end: Date;
+      period: 'month' | 'semester' | 'year';
+    };
+    departments?: string[];
+    seasons?: ('summer' | 'winter' | 'spring' | 'fall')[];
+    years?: number[];
+  };
 }
 
 // Generate demo data for fallback
@@ -140,7 +157,7 @@ const generateDemoInternData = (): InternData[] => {
   ];
 };
 
-export function InternSearchComponent() {
+export function InternSearchComponent({ externalFilters }: InternSearchComponentProps = {}) {
   const [allInterns, setAllInterns] = useState<InternData[]>([]);
   const [filteredInterns, setFilteredInterns] = useState<InternData[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -156,7 +173,13 @@ export function InternSearchComponent() {
     nationality: '',
     gender: '',
     month: '',
-    year: ''
+    year: '',
+    dateRange: externalFilters?.timeRange 
+      ? {
+          start: externalFilters.timeRange.start,
+          end: externalFilters.timeRange.end
+        } 
+      : undefined
   });
 
   // For year/month dropdowns
@@ -260,14 +283,19 @@ export function InternSearchComponent() {
   };
 
   const clearFilters = () => {
+    // Keep the date range from external filters if present
     setFilters({
       name: '',
-      department: undefined,
+      department: externalFilters?.departments?.length ? externalFilters.departments[0] : undefined,
       status: undefined,
       nationality: undefined,
       gender: undefined,
       month: undefined,
-      year: undefined
+      year: externalFilters?.years?.length ? externalFilters.years[0].toString() : undefined,
+      dateRange: externalFilters?.timeRange ? {
+        start: externalFilters.timeRange.start,
+        end: externalFilters.timeRange.end
+      } : undefined
     });
   };
 
@@ -291,6 +319,35 @@ export function InternSearchComponent() {
   useEffect(() => {
     fetchData();
   }, []);
+  
+  // Sync with external filters when they change
+  useEffect(() => {
+    if (externalFilters?.timeRange) {
+      setFilters(prevFilters => ({
+        ...prevFilters,
+        dateRange: {
+          start: externalFilters.timeRange!.start,
+          end: externalFilters.timeRange!.end
+        }
+      }));
+    }
+    
+    // Sync department filter if provided externally
+    if (externalFilters?.departments && externalFilters.departments.length > 0) {
+      setFilters(prevFilters => ({
+        ...prevFilters,
+        department: externalFilters.departments![0] // We only support one department in our current UI
+      }));
+    }
+    
+    // Sync year filter if provided externally
+    if (externalFilters?.years && externalFilters.years.length > 0) {
+      setFilters(prevFilters => ({
+        ...prevFilters,
+        year: externalFilters.years![0].toString() // Convert number to string
+      }));
+    }
+  }, [externalFilters]);
 
   useEffect(() => {
     let filtered = allInterns;
@@ -324,12 +381,42 @@ export function InternSearchComponent() {
         intern.gender && intern.gender.toLowerCase() === filters.gender!.toLowerCase()
       );
     }
+    
     // Month/year filter (by start_date)
     if (filters.year) {
       filtered = filtered.filter(intern => intern.start_date?.slice(0,4) === filters.year);
     }
+    
     if (filters.month) {
       filtered = filtered.filter(intern => intern.start_date?.slice(5,7) === filters.month);
+    }
+    
+    // Date range filter - more precise than month/year filters
+    if (filters.dateRange && filters.dateRange.start && filters.dateRange.end) {
+      const startDate = filters.dateRange.start;
+      const endDate = filters.dateRange.end;
+      
+      filtered = filtered.filter(intern => {
+        if (!intern.start_date) return false;
+        
+        const internStartDate = new Date(intern.start_date);
+        
+        // Include interns who started within the date range
+        const startsInRange = internStartDate >= startDate && internStartDate <= endDate;
+        
+        // If there's an end date, also check for interns active during the range
+        if (intern.end_date) {
+          const internEndDate = new Date(intern.end_date);
+          const endsInRange = internEndDate >= startDate && internEndDate <= endDate;
+          
+          // Intern's duration overlaps with the date range
+          const overlapsRange = internStartDate <= endDate && internEndDate >= startDate;
+          
+          return startsInRange || endsInRange || overlapsRange;
+        }
+        
+        return startsInRange;
+      });
     }
     
     setFilteredInterns(filtered);
@@ -506,8 +593,28 @@ export function InternSearchComponent() {
             </div>
           </div>
 
+          {/* Active Filters Display */}
+          {filters.dateRange && (
+            <div className="mt-3 mb-2">
+              <Label className="mb-2 block">Active Date Range Filter</Label>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                  {filters.dateRange.start.toLocaleDateString()} - {filters.dateRange.end.toLocaleDateString()}
+                </Badge>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-6 px-2 text-xs" 
+                  onClick={() => setFilters(prev => ({ ...prev, dateRange: undefined }))}>
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-4">
             <Button onClick={clearFilters} variant="outline" size="sm">
               <X className="h-3 w-3 mr-1" />
               Clear Filters
@@ -528,6 +635,11 @@ export function InternSearchComponent() {
             <CardTitle className="flex items-center justify-between">
               <span>Search Results</span>
               <Badge variant="secondary">{filteredInterns.length} interns</Badge>
+              {filters.dateRange && (
+                <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-800 border-blue-200">
+                  Filtered by date: {formatDate(filters.dateRange.start.toISOString())} - {formatDate(filters.dateRange.end.toISOString())}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>

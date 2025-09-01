@@ -65,6 +65,20 @@ export async function exportInternDataToSheets({
   if (internData.length === 0) {
     throw new Error('No intern data provided for export');
   }
+  
+  // Format dates properly for better readability in Google Sheets
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric'
+      });
+    } catch {
+      return dateString || '';
+    }
+  };
 
   const headers = ['Name', 'Email', 'Department', 'Status', 'Nationality', 'Gender', 'Start Date', 'End Date'];
   const values = [
@@ -76,8 +90,8 @@ export async function exportInternDataToSheets({
       intern.status,
       intern.nationality,
       intern.gender,
-      intern.start_date || '',
-      intern.end_date || '',
+      formatDate(intern.start_date),
+      formatDate(intern.end_date),
     ]),
   ];
 

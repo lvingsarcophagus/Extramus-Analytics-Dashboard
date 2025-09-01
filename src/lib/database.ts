@@ -66,13 +66,23 @@ export async function testConnection(): Promise<boolean> {
     const pool = await getPool();
     client = await pool.connect();
     const result = await client.query('SELECT NOW() as current_time');
-    // Only log in development mode for performance
     if (process.env.NODE_ENV === 'development') {
       console.log('Database connected successfully:', result.rows[0]);
     }
     return true;
   } catch (error) {
-    console.error('Database connection failed:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('Database connection failed:', errorMessage);
+    if (errorStack) {
+      console.error('Error stack:', errorStack);
+    }
+    // Log environment variables for debugging (do not log password)
+    console.error('DB_HOST:', process.env.DB_HOST);
+    console.error('DB_PORT:', process.env.DB_PORT);
+    console.error('DB_NAME:', process.env.DB_NAME);
+    console.error('DB_USER:', process.env.DB_USER);
+    console.error('DB_SSL_MODE:', process.env.DB_SSL_MODE);
     // Reset pool on connection failure
     if (pool) {
       await pool.end().catch(() => {});
@@ -106,9 +116,19 @@ export async function executeQuery(
       return result.rows;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : '';
       const errorCode = error instanceof Error && 'code' in error ? (error as Error & { code: string }).code : undefined;
 
       console.error(`Query execution failed (${retries} retries left):`, errorMessage);
+      if (errorStack) {
+        console.error('Error stack:', errorStack);
+      }
+      // Log environment variables for debugging (do not log password)
+      console.error('DB_HOST:', process.env.DB_HOST);
+      console.error('DB_PORT:', process.env.DB_PORT);
+      console.error('DB_NAME:', process.env.DB_NAME);
+      console.error('DB_USER:', process.env.DB_USER);
+      console.error('DB_SSL_MODE:', process.env.DB_SSL_MODE);
 
       // Reset pool on connection errors
       if (errorCode === 'ECONNRESET' || errorCode === 'ENOTFOUND' ||

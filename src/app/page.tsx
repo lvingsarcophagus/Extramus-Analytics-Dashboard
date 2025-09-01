@@ -17,6 +17,7 @@ import { InternshipDurationChart } from '@/components/charts/InternshipDurationC
 import { PerformanceMetricsChart } from '@/components/charts/PerformanceMetricsChart';
 import { AllDepartmentsDisplay } from '@/components/dashboard/AllDepartmentsDisplay';
 import { InternSearchComponent } from '@/components/dashboard/InternSearchComponent';
+import { AdvancedFilterPanel } from '@/components/dashboard/AdvancedFilterPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -371,7 +372,19 @@ export default function Dashboard() {
 
               {hasPermission('interns') && (
                 <TabsContent value="search" className="space-y-6">
-                  <InternSearchComponent />
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div className="lg:col-span-1">
+                      <AdvancedFilterPanel 
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        availableOptions={availableOptions}
+                        className="sticky top-2"
+                      />
+                    </div>
+                    <div className="lg:col-span-3">
+                      <InternSearchComponent externalFilters={filters} />
+                    </div>
+                  </div>
                 </TabsContent>
               )}
 

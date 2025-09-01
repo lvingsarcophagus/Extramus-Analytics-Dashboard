@@ -43,6 +43,13 @@ export function MonthlyTrendsChart() {
         interns_completed: parseInt(item.interns_completed) || 0
       }));
       
+      // Sort by date to ensure chronological order
+      transformedData.sort((a: MonthlyTrendData, b: MonthlyTrendData) => {
+        const dateA = new Date(a.month);
+        const dateB = new Date(b.month);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
       setData(transformedData);
       setLastUpdated(new Date());
     } catch (err) {
@@ -55,7 +62,8 @@ export function MonthlyTrendsChart() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Update every minute
+    // Update more frequently for real-time data
+    const interval = setInterval(fetchData, 30000); // Update every 30 seconds
     return () => clearInterval(interval);
   }, []);
 

@@ -59,7 +59,7 @@ export interface FilterOptions {
   timeRange: {
     start: Date;
     end: Date;
-    period: 'month' | 'semester' | 'year';
+    period: 'month' | 'semester' | 'year' | 'custom';
   };
   departments: string[];
   seasons: ('summer' | 'winter' | 'spring' | 'fall')[];

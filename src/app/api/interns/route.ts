@@ -134,7 +134,7 @@ export async function GET() {
       ORDER BY intern_count DESC;
     `, [], fallbackDepartmentStats);
 
-    // Get monthly statistics with calculated status
+      // Get monthly statistics with calculated status - using the last 12 months for accuracy
     const monthlyStatsResult = await safeExecuteQuery(`
       SELECT
         DATE_TRUNC('month', start_date) as month,
@@ -145,11 +145,10 @@ export async function GET() {
         END) as interns_completed
       FROM internship_info
       WHERE start_date IS NOT NULL
+        AND start_date > CURRENT_DATE - INTERVAL '12 months'
       GROUP BY DATE_TRUNC('month', start_date)
       ORDER BY month;
-    `, [], fallbackMonthlyStats);
-
-    return NextResponse.json({
+    `, [], fallbackMonthlyStats);    return NextResponse.json({
       success: true,
       data: {
         interns: internsResult,

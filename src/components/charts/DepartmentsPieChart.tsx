@@ -45,7 +45,8 @@ export function DepartmentsPieChart() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000); // Update every minute
+    // Update more frequently for real-time data
+    const interval = setInterval(fetchData, 30000); // Update every 30 seconds
     return () => clearInterval(interval);
   }, []);
 
