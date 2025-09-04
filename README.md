@@ -6,6 +6,10 @@ A comprehensive web dashboard for managing and analyzing intern programs and hou
 
 This dashboard provides real-time insights into intern program performance and housing occupancy, enabling data-driven decisions for program coordinators, HR teams, and housing managers.
 
+## ⚠️ Important Note About Database Issues
+
+If you're experiencing database permission errors or missing tables, please refer to the [Database Permissions Guide](./DATABASE_PERMISSIONS_GUIDE.md) for detailed solutions.
+
 ### Key Features
 
 - **📊 Interactive Analytics**: Real-time charts and metrics for intern trends, project completion, and housing occupancy

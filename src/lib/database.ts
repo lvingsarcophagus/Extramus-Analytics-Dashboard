@@ -183,6 +183,9 @@ export function getDatabaseStatus(): boolean {
   return isDatabaseAvailable;
 }
 
+// Import error handler
+import { processDbError } from './db-error-handler';
+
 // Safe query execution with fallback
 export async function safeExecuteQuery(
   text: string,
@@ -194,10 +197,26 @@ export async function safeExecuteQuery(
     isDatabaseAvailable = true;
     return result;
   } catch (error) {
-    console.warn('Database query failed, using fallback data:', error);
-    isDatabaseAvailable = false;
+    // Process the error to get more detailed information
+    const dbError = processDbError(error);
+    
+    // Log useful error information
+    console.warn(`Database query failed: ${dbError.human_readable}`);
+    if (dbError.suggested_fix) {
+      console.warn(`Suggested fix: ${dbError.suggested_fix}`);
+    }
+    
+    // Set database availability based on error type
+    if (dbError.source === 'connection') {
+      isDatabaseAvailable = false;
+    } else {
+      // For query errors, database is available but query failed
+      isDatabaseAvailable = true;
+    }
 
+    // Use fallback data if provided
     if (fallbackData) {
+      console.log(`Using fallback data for failed query (${fallbackData.length} items)`);
       return fallbackData;
     }
 

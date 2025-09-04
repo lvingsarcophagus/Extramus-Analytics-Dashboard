@@ -4,10 +4,10 @@ import { sampleHousingUnits } from '@/lib/data/sample-data';
 
 export async function GET() {
   try {
-    console.log('=== HOUSING API ===');
+    console.log('=== HOUSING API (FALLBACK) ===');
     
-    // Query for apartments with rooms and occupancy
-    const apartmentsQuery = `
+    // First, check if apartments and rooms tables exist
+    let apartmentsQuery = `
       SELECT 
         a.id as apartment_id,
         a.apartment_name,
@@ -15,19 +15,16 @@ export async function GET() {
         r.room_number,
         r.is_single,
         r.is_full,
-        COUNT(o.id) as occupants_count
+        0 as occupants_count
       FROM 
         apartments a
       LEFT JOIN 
         rooms r ON a.id = r.apartment_id
-      LEFT JOIN 
-        occupants o ON r.id = o.room_id
-      GROUP BY 
-        a.id, a.apartment_name, r.id, r.room_number, r.is_single, r.is_full
       ORDER BY 
         a.apartment_name, r.room_number
     `;
     
+    // Try the query that doesn't rely on occupants table
     const housingData = await safeExecuteQuery(apartmentsQuery, [], 
       sampleHousingUnits.map(unit => ({
         apartment_id: unit.id,
@@ -40,23 +37,7 @@ export async function GET() {
       }))
     );
     
-    // Get all occupants with intern details
-    const occupantsQuery = `
-      SELECT 
-        o.id as occupant_id,
-        o.room_id,
-        o.intern_id,
-        id.name as intern_name,
-        id.email as intern_email
-      FROM 
-        occupants o
-      LEFT JOIN 
-        intern_details id ON o.intern_id = id.intern_id
-    `;
-    
-    const occupantsData = await safeExecuteQuery(occupantsQuery, [], []);
-    
-    // Process and organize data
+    // Process and organize data without relying on occupants
     const apartments = new Map();
     const rooms = new Map();
     let totalRooms = 0;
@@ -77,42 +58,29 @@ export async function GET() {
       // Add room if we have room data
       if (row.room_id) {
         totalRooms++;
-        if (row.occupants_count > 0 || row.is_full) {
+        if (row.is_full) {
           occupiedRooms++;
         }
         
         // Add room to apartment
         const apartment = apartments.get(row.apartment_id);
         apartment.total_rooms++;
-        if (row.occupants_count > 0 || row.is_full) {
+        if (row.is_full) {
           apartment.occupied_rooms++;
         }
         
-        // Create room object
+        // Create room object without occupants (since we don't have that data)
         const room = {
           id: row.room_id,
           room_number: row.room_number,
           is_single: row.is_single,
           is_full: row.is_full,
-          occupants: []
+          occupants: [] // Empty since we can't access occupants table
         };
         
         // Add room to map and to apartment
         rooms.set(row.room_id, room);
         apartment.rooms.push(room);
-      }
-    });
-    
-    // Add occupants to rooms
-    occupantsData.forEach((occupant: any) => {
-      if (rooms.has(occupant.room_id)) {
-        const room = rooms.get(occupant.room_id);
-        room.occupants.push({
-          id: occupant.occupant_id,
-          intern_id: occupant.intern_id,
-          name: occupant.intern_name,
-          email: occupant.intern_email
-        });
       }
     });
     
@@ -134,7 +102,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Housing API error:', error);
+    console.error('Housing API (fallback) error:', error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Unknown error',
       success: false

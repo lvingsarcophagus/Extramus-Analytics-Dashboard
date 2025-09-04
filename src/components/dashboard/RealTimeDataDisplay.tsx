@@ -157,36 +157,123 @@ export function RealTimeDataDisplay({ title, endpoint, className }: RealTimeData
                   </span>
                 </div>
                 <div>
+                  <span className="text-gray-600">Pending:</span>
+                  <span className="font-medium ml-2 text-orange-600">
+                    {data.interns.filter((i: any) => i.normalized_status === 'pending').length}
+                  </span>
+                </div>
+                <div>
                   <span className="text-gray-600">Departments:</span>
-                  <span className="font-medium ml-2">{data.departmentStats.length}</span>
+                  <span className="font-medium ml-2">{data.departmentStats?.length || 0}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Supervisors:</span>
+                  <span className="font-medium ml-2">{data.supervisorStats?.length || 0}</span>
                 </div>
               </div>
+              {data.departmentStats && data.departmentStats.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="text-sm font-medium mb-2">Top Departments</h5>
+                  <div className="space-y-1">
+                    {data.departmentStats.slice(0, 3).map((dept: any, index: number) => (
+                      <div key={index} className="flex justify-between text-xs">
+                        <span>{dept.department_name}</span>
+                        <span className="text-gray-600">{dept.intern_count} interns</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
-          {endpoint.includes('housing') && data?.occupancyStats && (
+          {endpoint.includes('housing') && data?.housing && (
             <div>
               <h4 className="font-medium mb-2">Housing Statistics</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">Total Rooms:</span>
-                  <span className="font-medium ml-2">{data.occupancyStats.total_rooms}</span>
+                  <span className="font-medium ml-2">{data.housing.length}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Occupied:</span>
                   <span className="font-medium ml-2 text-red-600">
-                    {data.occupancyStats.occupied_rooms}
+                    {data.housing.filter((r: any) => r.room_status === 'occupied').length}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">Available:</span>
                   <span className="font-medium ml-2 text-green-600">
-                    {data.occupancyStats.available_rooms}
+                    {data.housing.filter((r: any) => r.room_status === 'available').length}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">Occupancy Rate:</span>
-                  <span className="font-medium ml-2">{data.occupancyStats.occupancy_rate}%</span>
+                  <span className="font-medium ml-2">
+                    {data.occupancyStats?.occupancy_rate || 0}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Single Rooms:</span>
+                  <span className="font-medium ml-2">
+                    {data.housing.filter((r: any) => r.is_single).length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Double Rooms:</span>
+                  <span className="font-medium ml-2">
+                    {data.housing.filter((r: any) => !r.is_single).length}
+                  </span>
+                </div>
+              </div>
+              {data.apartmentStats && data.apartmentStats.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="text-sm font-medium mb-2">Apartment Utilization</h5>
+                  <div className="space-y-1">
+                    {data.apartmentStats.slice(0, 3).map((apt: any, index: number) => (
+                      <div key={index} className="flex justify-between text-xs">
+                        <span>{apt.apartment_name}</span>
+                        <span className="text-gray-600">
+                          {apt.occupied_rooms}/{apt.total_rooms} rooms
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {endpoint.includes('comprehensive-analytics') && data?.overview && (
+            <div>
+              <h4 className="font-medium mb-2">System Overview</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Total Interns:</span>
+                  <span className="font-medium ml-2">{data.overview.total_interns}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Active:</span>
+                  <span className="font-medium ml-2 text-green-600">
+                    {data.overview.active_interns}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Departments:</span>
+                  <span className="font-medium ml-2">{data.overview.total_departments}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Housing Rate:</span>
+                  <span className="font-medium ml-2">{data.overview.overall_occupancy_rate}%</span>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-2">
+                <div className="text-xs text-gray-600">
+                  Completed: {data.overview.completed_interns} | 
+                  Pending: {data.overview.pending_interns}
+                </div>
+                <div className="text-xs text-gray-600">
+                  Housing: {data.overview.occupied_rooms}/{data.overview.total_rooms} rooms
                 </div>
               </div>
             </div>
