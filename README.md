@@ -1,4 +1,4 @@
-# Extramus Analytics Dashboard
+    # Extramus Analytics Dashboard
 
 A comprehensive web dashboard for managing and analyzing intern programs and housing operations, built with Next.js and shadcn/ui.
 

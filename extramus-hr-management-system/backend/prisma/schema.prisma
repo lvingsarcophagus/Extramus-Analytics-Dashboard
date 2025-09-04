@@ -1,0 +1,321 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  fullName  String   @map("full_name") @db.VarChar(100)
+  email     String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  role      UserRole @default(intern)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sessionLogs    SessionLog[]
+  internDetails  InternDetails?
+  notifications  Notification[]
+  
+  @@map("users")
+}
+
+model SessionLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  email      String   @db.VarChar(50)
+  loginTime  DateTime @map("login_time")
+  ipAddress  String   @map("ip_address") @db.VarChar(45)
+  userAgent  String   @map("user_agent") @db.VarChar(255)
+  sessionId  String   @map("session_id") @db.VarChar(255)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session_logs")
+}
+
+model Department {
+  id             Int    @id @default(autoincrement())
+  departmentName String @unique @map("department_name") @db.VarChar(50)
+
+  // Relations
+  internships InternshipInfo[]
+
+  @@map("departments")
+}
+
+model InternDetails {
+  internId    Int       @id @default(autoincrement()) @map("intern_id")
+  name        String    @db.VarChar(100)
+  nationality String?   @db.VarChar(25)
+  gender      String?   @db.VarChar(20)
+  birthdate   DateTime? @db.Date
+  email       String    @unique @db.VarChar(50)
+  phone       String?   @db.VarChar(20)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user              User                   @relation(fields: [email], references: [email], onDelete: Cascade)
+  internshipInfo    InternshipInfo[]
+  documents         InternDocument[]
+  occupants         Occupant[]
+  bills             Bill[]
+  verifications     DocumentVerification[]
+  notifications     Notification[]
+
+  @@map("intern_details")
+}
+
+model InternshipInfo {
+  id           Int                @id @default(autoincrement())
+  internId     Int                @map("intern_id")
+  departmentId Int?               @map("department_id")
+  startDate    DateTime?          @map("start_date") @db.Date
+  endDate      DateTime?          @map("end_date") @db.Date
+  supervisor   String             @default("Antonio Gallo") @db.VarChar(40)
+  status       InternshipStatus?
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  intern     InternDetails @relation(fields: [internId], references: [internId], onDelete: Cascade)
+  department Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@map("internship_info")
+}
+
+model Apartment {
+  id            Int    @id @default(autoincrement())
+  apartmentName String @unique @map("apartment_name") @db.VarChar(50)
+  address       String? @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rooms Room[]
+
+  @@map("apartments")
+}
+
+model Room {
+  id          Int     @id @default(autoincrement())
+  apartmentId Int     @map("apartment_id")
+  roomNumber  String  @map("room_number") @db.VarChar(10)
+  isSingle    Boolean @default(true) @map("is_single")
+  isFull      Boolean @default(false) @map("is_full")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  apartment Apartment  @relation(fields: [apartmentId], references: [id], onDelete: Cascade)
+  occupants Occupant[]
+
+  @@unique([apartmentId, roomNumber])
+  @@map("rooms")
+}
+
+model Occupant {
+  id            Int       @id @default(autoincrement())
+  roomId        Int       @map("room_id")
+  internId      Int       @map("intern_id")
+  arrivalDate   DateTime? @map("arrival_date") @db.Date
+  departureDate DateTime? @map("departure_date") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  room   Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  intern InternDetails @relation(fields: [internId], references: [internId], onDelete: Cascade)
+
+  @@map("occupants")
+}
+
+model Bill {
+  id            Int         @id @default(autoincrement())
+  internId      Int         @map("intern_id")
+  billType      BillType    @map("bill_type")
+  amount        Decimal     @db.Decimal(10, 2)
+  dueDate       DateTime    @map("due_date") @db.Date
+  status        BillStatus
+  arrivalDate   DateTime?   @map("arrival_date") @db.Date
+  departureDate DateTime?   @map("departure_date") @db.Date
+  description   String?     @db.Text
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  intern InternDetails @relation(fields: [internId], references: [internId], onDelete: Cascade)
+
+  @@map("bills")
+}
+
+model InternDocument {
+  id               Int                    @id @default(autoincrement())
+  internId         Int                    @map("intern_id")
+  documentType     DocumentType           @map("document_type")
+  fileName         String                 @map("file_name") @db.VarChar(255)
+  originalName     String                 @map("original_name") @db.VarChar(255)
+  filePath         String                 @map("file_path") @db.VarChar(500)
+  fileSize         Int                    @map("file_size")
+  mimeType         String                 @map("mime_type") @db.VarChar(100)
+  status           DocumentStatus         @default(pending)
+  uploadedAt       DateTime               @default(now()) @map("uploaded_at")
+  verifiedAt       DateTime?              @map("verified_at")
+  rejectedAt       DateTime?              @map("rejected_at")
+  rejectionReason  String?                @map("rejection_reason") @db.Text
+  notes            String?                @db.Text
+  isRequired       Boolean                @default(true) @map("is_required")
+  expiryDate       DateTime?              @map("expiry_date") @db.Date
+  version          Int                    @default(1)
+  isActive         Boolean                @default(true) @map("is_active")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  // Relations
+  intern        InternDetails          @relation(fields: [internId], references: [internId], onDelete: Cascade)
+  verifications DocumentVerification[]
+
+  @@map("intern_documents")
+}
+
+model DocumentVerification {
+  id             Int                    @id @default(autoincrement())
+  documentId     Int                    @map("document_id")
+  internId       Int                    @map("intern_id")
+  verifierId     Int?                   @map("verifier_id")
+  action         VerificationAction
+  previousStatus DocumentStatus        @map("previous_status")
+  newStatus      DocumentStatus        @map("new_status")
+  comments       String?               @db.Text
+  verifiedAt     DateTime              @default(now()) @map("verified_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+
+  // Relations
+  document InternDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  intern   InternDetails  @relation(fields: [internId], references: [internId], onDelete: Cascade)
+
+  @@map("document_verifications")
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  internId  Int?             @map("intern_id")
+  type      NotificationType
+  title     String           @db.VarChar(255)
+  message   String           @db.Text
+  isRead    Boolean          @default(false) @map("is_read")
+  priority  Priority         @default(medium)
+  data      Json?            // Additional data as JSON
+  createdAt DateTime         @default(now()) @map("created_at")
+  readAt    DateTime?        @map("read_at")
+
+  // Relations
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  intern InternDetails? @relation(fields: [internId], references: [internId], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Enums
+enum UserRole {
+  intern
+  hr
+  super_admin
+
+  @@map("user_role")
+}
+
+enum InternshipStatus {
+  Active
+  Completed
+  Rejected
+
+  @@map("internship_status")
+}
+
+enum BillType {
+  Electricity
+  Water
+  Gas
+  Heating
+  Internet
+  Maintenance
+  Cleaning
+  Accommodation
+
+  @@map("bill_type")
+}
+
+enum BillStatus {
+  Pending
+  Paid
+  Overdue
+
+  @@map("bill_status")
+}
+
+enum DocumentType {
+  CV
+  ID_PASSPORT
+  ERASMUS_FORMS
+  INTERNSHIP_AGREEMENT
+  INSURANCE
+  ACCEPTANCE_LETTER
+  LEARNING_AGREEMENT
+  FINAL_REPORT
+  PROFILE_PICTURE
+  OTHER
+
+  @@map("document_type")
+}
+
+enum DocumentStatus {
+  pending
+  under_review
+  verified
+  rejected
+  expired
+
+  @@map("document_status")
+}
+
+enum VerificationAction {
+  approve
+  reject
+  request_revision
+  upload
+  delete
+
+  @@map("verification_action")
+}
+
+enum NotificationType {
+  document_uploaded
+  document_verified
+  document_rejected
+  document_expired
+  bill_due
+  system_announcement
+  housing_update
+
+  @@map("notification_type")
+}
+
+enum Priority {
+  low
+  medium
+  high
+  urgent
+
+  @@map("priority")
+}
