@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar as CalendarIcon, Filter, X, RefreshCw, ChevronDown, ChevronRight, Building } from 'lucide-react';
 import { FilterOptions } from '@/types';
+import { useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -35,10 +36,18 @@ export function AdvancedFilterPanel({ filters, onFiltersChange, availableOptions
     departments: false,
     advanced: false
   });
+
+  const [departmentSearch, setDepartmentSearch] = useState('');
   
   const [dateRangeType, setDateRangeType] = useState<string>('preset');
   const [fromDate, setFromDate] = useState<Date | undefined>(filters.timeRange.start);
   const [toDate, setToDate] = useState<Date | undefined>(filters.timeRange.end);
+
+  const filteredDepartments = useMemo(() => {
+    return availableOptions.departments.filter(dept =>
+      dept.toLowerCase().includes(departmentSearch.toLowerCase())
+    );
+  }, [departmentSearch, availableOptions.departments]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -147,9 +156,25 @@ export function AdvancedFilterPanel({ filters, onFiltersChange, availableOptions
     }
   };
 
+  const handleStatusChange = (value: string) => {
+    if (value === "all") {
+      onFiltersChange({ ...filters, status: [] });
+    } else {
+      onFiltersChange({ ...filters, status: [value as 'active' | 'completed' | 'withdrawn' | 'pending'] });
+    }
+  };
+
+  const handleGenderChange = (value: string) => {
+    if (value === "all") {
+      onFiltersChange({ ...filters, gender: [] });
+    } else {
+      onFiltersChange({ ...filters, gender: [value as 'male' | 'female' | 'other' | 'prefer_not_to_say'] });
+    }
+  };
+
   const clearFilters = () => {
     onFiltersChange({
-      timeRange: presetRanges.allTime.start 
+      timeRange: presetRanges.allTime.start
         ? {
             start: presetRanges.allTime.start,
             end: presetRanges.allTime.end,
@@ -163,15 +188,19 @@ export function AdvancedFilterPanel({ filters, onFiltersChange, availableOptions
       departments: [],
       seasons: [],
       years: [],
+      status: [],
+      gender: [],
     });
     setDateRangeType('preset');
     setFromDate(presetRanges.thisYear.start);
     setToDate(presetRanges.thisYear.end);
   };
 
-  const hasActiveFilters = filters.departments.length > 0 || 
-                           filters.seasons.length > 0 || 
+  const hasActiveFilters = filters.departments.length > 0 ||
+                           filters.seasons.length > 0 ||
                            filters.years.length > 0 ||
+                           (filters.status && filters.status.length > 0) ||
+                           (filters.gender && filters.gender.length > 0) ||
                            dateRangeType === 'custom';
 
   return (
@@ -342,25 +371,35 @@ export function AdvancedFilterPanel({ filters, onFiltersChange, availableOptions
           
           {expandedSections.departments && (
             <div className="p-3 pt-0 border-t space-y-3">
-              {/* Department dropdown */}
-              <div className="space-y-1 pt-2">
-                <Label htmlFor="department" className="text-xs">Department</Label>
-                <Select
-                  value={filters.departments.length > 0 ? filters.departments[0] : "all"}
-                  onValueChange={handleDepartmentChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-40">
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {availableOptions.departments.map(department => (
-                      <SelectItem key={department} value={department}>
+              {/* Department multiselect */}
+              <div className="space-y-2 pt-2">
+                <Label className="text-xs">Departments</Label>
+                <Input
+                  placeholder="Search departments..."
+                  value={departmentSearch}
+                  onChange={(e) => setDepartmentSearch(e.target.value)}
+                />
+                <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                  {filteredDepartments.map(department => (
+                    <div key={department} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`dept-${department}`}
+                        checked={filters.departments.includes(department)}
+                        onChange={(e) => {
+                          const newDepartments = e.target.checked
+                            ? [...filters.departments, department]
+                            : filters.departments.filter(d => d !== department);
+                          onFiltersChange({ ...filters, departments: newDepartments });
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <Label htmlFor={`dept-${department}`} className="ml-2 text-sm font-normal">
                         {department}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Year dropdown */}
@@ -401,6 +440,46 @@ export function AdvancedFilterPanel({ filters, onFiltersChange, availableOptions
                         {season}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status dropdown */}
+              <div className="space-y-1">
+                <Label htmlFor="status" className="text-xs">Status</Label>
+                <Select
+                  value={filters.status && filters.status.length > 0 ? filters.status[0] : "all"}
+                  onValueChange={handleStatusChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Gender dropdown */}
+              <div className="space-y-1">
+                <Label htmlFor="gender" className="text-xs">Gender</Label>
+                <Select
+                  value={filters.gender && filters.gender.length > 0 ? filters.gender[0] : "all"}
+                  onValueChange={handleGenderChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Genders" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Genders</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

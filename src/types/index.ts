@@ -154,6 +154,8 @@ export interface FilterOptions {
   departments: string[];
   seasons: ('summer' | 'winter' | 'spring' | 'fall')[];
   years: number[];
+  status: ('active' | 'completed' | 'withdrawn' | 'pending')[];
+  gender: ('male' | 'female' | 'other' | 'prefer_not_to_say')[];
 }
 
 export interface DashboardMetrics {
