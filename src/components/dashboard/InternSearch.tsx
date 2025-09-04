@@ -48,6 +48,7 @@ interface SearchFilters {
   gender?: string;
   month?: string;
   year?: string;
+  supervisor?: string;
   dateRange?: {
     start: Date;
     end: Date;
@@ -98,71 +99,16 @@ const generateDemoInternData = (): InternData[] => {
       status: 'Completed',
       normalized_status: 'completed'
     },
-    {
-      intern_id: 3,
-      name: 'Maria Garcia',
-      nationality: 'Spanish',
-      gender: 'Female',
-      birthdate: '2002-01-08',
-      email: 'maria.garcia@example.com',
-      department_name: 'Sales',
-      start_date: '2025-07-01',
-      end_date: '2025-09-30',
-      supervisor: 'Mr. Wilson',
-      status: 'Active',
-      normalized_status: 'active'
-    },
-    {
-      intern_id: 4,
-      name: 'Li Wei',
-      nationality: 'Chinese',
-      gender: 'Male',
-      birthdate: '2001-07-30',
-      email: 'li.wei@example.com',
-      department_name: 'HR',
-      start_date: '2025-06-15',
-      end_date: '2025-08-15',
-      supervisor: 'Dr. Davis',
-      status: 'Pending',
-      normalized_status: 'pending'
-    },
-    {
-      intern_id: 5,
-      name: 'Emily Thompson',
-      nationality: 'Canadian',
-      gender: 'Female',
-      birthdate: '2000-09-12',
-      email: 'emily.thompson@example.com',
-      department_name: 'Finance',
-      start_date: '2025-05-01',
-      end_date: '2025-07-31',
-      supervisor: 'Ms. Johnson',
-      status: 'Completed',
-      normalized_status: 'completed'
-    },
-    {
-      intern_id: 6,
-      name: 'Rajesh Patel',
-      nationality: 'Indian',
-      gender: 'Male',
-      birthdate: '2001-12-05',
-      email: 'rajesh.patel@example.com',
-      department_name: 'IT Support',
-      start_date: '2025-08-01',
-      end_date: '2025-10-31',
-      supervisor: 'Mr. Anderson',
-      status: 'Active',
-      normalized_status: 'active'
-    }
   ];
 };
 
-export function InternSearchComponent({ externalFilters }: InternSearchComponentProps = {}) {
+export function InternSearch({ externalFilters }: InternSearchComponentProps = {}) {
   const [allInterns, setAllInterns] = useState<InternData[]>([]);
   const [filteredInterns, setFilteredInterns] = useState<InternData[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [nationalities, setNationalities] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false); // Changed to false initially
+  const [supervisors, setSupervisors] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIntern, setSelectedIntern] = useState<InternData | null>(null);
   
@@ -174,6 +120,7 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
     gender: '',
     month: '',
     year: '',
+    supervisor: '',
     dateRange: externalFilters?.timeRange 
       ? {
           start: externalFilters.timeRange.start,
@@ -182,7 +129,6 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
       : undefined
   });
 
-  // For year/month dropdowns
   const [years, setYears] = useState<string[]>([]);
   const months = [
     { value: '', label: 'All months' },
@@ -205,9 +151,8 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
       setLoading(true);
       setError(null);
       
-      // Set a timeout for the request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       let response;
       try {
@@ -231,12 +176,13 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
         setAllInterns(demoData);
         setFilteredInterns(demoData);
         
-        // Extract unique values for filters from demo data
         const uniqueDepartments = [...new Set(demoData.map((i: InternData) => i.department_name).filter(Boolean))] as string[];
         const uniqueNationalities = [...new Set(demoData.map((i: InternData) => i.nationality).filter(Boolean))] as string[];
+        const uniqueSupervisors = [...new Set(demoData.map((i: InternData) => i.supervisor).filter(Boolean))] as string[];
         
         setDepartments(uniqueDepartments.sort());
         setNationalities(uniqueNationalities.sort());
+        setSupervisors(uniqueSupervisors.sort());
         
         setError('Using demo data (Database offline)');
         return;
@@ -252,29 +198,29 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
       
       setAllInterns(interns);
       setFilteredInterns(interns);
-      // Extract unique values for filters
       const uniqueDepartments = [...new Set(interns.map((i: InternData) => i.department_name).filter(Boolean))] as string[];
       const uniqueNationalities = [...new Set(interns.map((i: InternData) => i.nationality).filter(Boolean))] as string[];
+      const uniqueSupervisors = [...new Set(interns.map((i: InternData) => i.supervisor).filter(Boolean))] as string[];
       setDepartments(uniqueDepartments.sort());
       setNationalities(uniqueNationalities.sort());
-      // Extract unique years from start_date
-  const uniqueYears = [...new Set(interns.map((i: InternData) => i.start_date?.slice(0,4)).filter(Boolean))] as string[];
+      setSupervisors(uniqueSupervisors.sort());
+      const uniqueYears = [...new Set(interns.map((i: InternData) => i.start_date?.slice(0,4)).filter(Boolean))] as string[];
       setYears(uniqueYears.sort());
       
     } catch (err) {
       console.error('Error fetching intern data:', err);
       
-      // Use demo data as fallback
       const demoData = generateDemoInternData();
       setAllInterns(demoData);
       setFilteredInterns(demoData);
       
-      // Extract unique values for filters from demo data
       const uniqueDepartments = [...new Set(demoData.map((i: InternData) => i.department_name).filter(Boolean))] as string[];
       const uniqueNationalities = [...new Set(demoData.map((i: InternData) => i.nationality).filter(Boolean))] as string[];
+      const uniqueSupervisors = [...new Set(demoData.map((i: InternData) => i.supervisor).filter(Boolean))] as string[];
       
       setDepartments(uniqueDepartments.sort());
       setNationalities(uniqueNationalities.sort());
+      setSupervisors(uniqueSupervisors.sort());
       
       setError('Using demo data (Database connection failed)');
     } finally {
@@ -283,7 +229,6 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
   };
 
   const clearFilters = () => {
-    // Keep the date range from external filters if present
     setFilters({
       name: '',
       department: externalFilters?.departments?.length ? externalFilters.departments[0] : undefined,
@@ -292,6 +237,7 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
       gender: undefined,
       month: undefined,
       year: externalFilters?.years?.length ? externalFilters.years[0].toString() : undefined,
+      supervisor: undefined,
       dateRange: externalFilters?.timeRange ? {
         start: externalFilters.timeRange.start,
         end: externalFilters.timeRange.end
@@ -316,11 +262,22 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
     }
   };
 
+  const calculateAge = (birthdate: string) => {
+    if (!birthdate) return 'N/A';
+    const today = new Date();
+    const birthDate = new Date(birthdate);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
   
-  // Sync with external filters when they change
   useEffect(() => {
     if (externalFilters?.timeRange) {
       setFilters(prevFilters => ({
@@ -332,19 +289,17 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
       }));
     }
     
-    // Sync department filter if provided externally
     if (externalFilters?.departments && externalFilters.departments.length > 0) {
       setFilters(prevFilters => ({
         ...prevFilters,
-        department: externalFilters.departments![0] // We only support one department in our current UI
+        department: externalFilters.departments![0]
       }));
     }
     
-    // Sync year filter if provided externally
     if (externalFilters?.years && externalFilters.years.length > 0) {
       setFilters(prevFilters => ({
         ...prevFilters,
-        year: externalFilters.years![0].toString() // Convert number to string
+        year: externalFilters.years![0].toString()
       }));
     }
   }, [externalFilters]);
@@ -381,8 +336,13 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
         intern.gender && intern.gender.toLowerCase() === filters.gender!.toLowerCase()
       );
     }
+
+    if (filters.supervisor) {
+      filtered = filtered.filter(intern =>
+        intern.supervisor === filters.supervisor
+      );
+    }
     
-    // Month/year filter (by start_date)
     if (filters.year) {
       filtered = filtered.filter(intern => intern.start_date?.slice(0,4) === filters.year);
     }
@@ -391,7 +351,6 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
       filtered = filtered.filter(intern => intern.start_date?.slice(5,7) === filters.month);
     }
     
-    // Date range filter - more precise than month/year filters
     if (filters.dateRange && filters.dateRange.start && filters.dateRange.end) {
       const startDate = filters.dateRange.start;
       const endDate = filters.dateRange.end;
@@ -401,15 +360,12 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
         
         const internStartDate = new Date(intern.start_date);
         
-        // Include interns who started within the date range
         const startsInRange = internStartDate >= startDate && internStartDate <= endDate;
         
-        // If there's an end date, also check for interns active during the range
         if (intern.end_date) {
           const internEndDate = new Date(intern.end_date);
           const endsInRange = internEndDate >= startDate && internEndDate <= endDate;
           
-          // Intern's duration overlaps with the date range
           const overlapsRange = internStartDate <= endDate && internEndDate >= startDate;
           
           return startsInRange || endsInRange || overlapsRange;
@@ -461,7 +417,6 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
 
   return (
     <div className="space-y-6 relative">
-      {/* Search and Filters */}
       <Card className="relative z-10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -478,7 +433,6 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Name Search */}
           <div className="space-y-2">
             <Label htmlFor="name-search">Search by Name</Label>
             <Input
@@ -490,8 +444,7 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
             />
           </div>
 
-          {/* Filter Row */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 relative z-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-20">
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
@@ -591,9 +544,24 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+                <Label>Supervisor</Label>
+                <Select
+                    value={filters.supervisor}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, supervisor: value }))}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="All supervisors" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-40 overflow-y-auto z-[140]">
+                        {supervisors.map(supervisor => (
+                            <SelectItem key={supervisor} value={supervisor}>{supervisor}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
           </div>
 
-          {/* Active Filters Display */}
           {filters.dateRange && (
             <div className="mt-3 mb-2">
               <Label className="mb-2 block">Active Date Range Filter</Label>
@@ -613,11 +581,10 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-2 mt-4">
             <Button onClick={clearFilters} variant="outline" size="sm">
               <X className="h-3 w-3 mr-1" />
-              Clear Filters
+              Clear All Filters
             </Button>
             <Button onClick={fetchData} variant="outline" size="sm">
               <RefreshCw className="h-3 w-3 mr-1" />
@@ -627,9 +594,7 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
         </CardContent>
       </Card>
 
-      {/* Results Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-0">
-        {/* Intern List */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -674,7 +639,6 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
           </CardContent>
         </Card>
 
-        {/* Intern Details */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -692,7 +656,7 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-sm truncate">{selectedIntern.email}</span>
@@ -715,10 +679,10 @@ export function InternSearchComponent({ externalFilters }: InternSearchComponent
 
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-sm">Born: {formatDate(selectedIntern.birthdate)}</span>
+                    <span className="text-sm">Born: {formatDate(selectedIntern.birthdate)} ({calculateAge(selectedIntern.birthdate)} years)</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 col-span-2">
                     <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-sm">
                       Duration: {formatDate(selectedIntern.start_date)} - {formatDate(selectedIntern.end_date)}
