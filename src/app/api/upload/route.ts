@@ -6,6 +6,8 @@ import fs from 'fs';
 const uploadDir = './uploads';
 
 // Ensure the upload directory exists
+// Note: This implementation saves files to a local directory, which is not suitable for serverless environments like Vercel.
+// For production, you should use a cloud storage service like AWS S3, Google Cloud Storage, or a database.
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
