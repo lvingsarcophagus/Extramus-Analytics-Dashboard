@@ -144,31 +144,57 @@ export default function OverviewPage() {
       </Card>
       <LiveMetricsDisplay />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="modern-card">
-          <SimpleDepartmentChart />
-        </div>
-        <div className="modern-card">
+        <Card className="modern-card">
+          <CardContent>
+            <SimpleDepartmentChart />
+          </CardContent>
+        </Card>
+        <Card className="modern-card">
+          <CardContent>
+            <RealTimeDataDisplay
+              title="Live Housing Data"
+              endpoint="/api/housing"
+            />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="modern-card">
+          <CardContent>
+            <SimpleDepartmentChart />
+          </CardContent>
+        </Card>
+        <Card className="modern-card">
+          <CardContent>
+            <SimpleMonthlyChart />
+          </CardContent>
+        </Card>
+        <Card className="modern-card">
+          <CardContent>
+            <SimpleStatusChart />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="modern-card">
+          <CardContent>
+            <InternshipDurationChart />
+          </CardContent>
+        </Card>
+        <Card className="modern-card">
+          <CardContent>
+            <PerformanceMetricsChart />
+          </CardContent>
+        </Card>
+      </div>
+      <Card className="modern-card">
+        <CardContent>
           <RealTimeDataDisplay
-            title="Live Housing Data"
-            endpoint="/api/housing"
+            title="Detailed Intern Analytics"
+            endpoint="/api/interns"
           />
-        </div>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="modern-card"><SimpleDepartmentChart /></div>
-        <div className="modern-card"><SimpleMonthlyChart /></div>
-        <div className="modern-card"><SimpleStatusChart /></div>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="modern-card"><InternshipDurationChart /></div>
-        <div className="modern-card"><PerformanceMetricsChart /></div>
-      </div>
-      <div className="modern-card">
-        <RealTimeDataDisplay
-          title="Detailed Intern Analytics"
-          endpoint="/api/interns"
-        />
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

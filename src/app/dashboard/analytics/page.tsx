@@ -20,11 +20,19 @@ export default function AnalyticsPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {hasPermission('demographics') ? (
           <>
-            <SimpleDepartmentChart />
-            <NationalityDistributionChart />
+            <Card className="modern-card">
+              <CardContent>
+                <SimpleDepartmentChart />
+              </CardContent>
+            </Card>
+            <Card className="modern-card">
+              <CardContent>
+                <NationalityDistributionChart />
+              </CardContent>
+            </Card>
           </>
         ) : (
-          <Card className="col-span-2">
+          <Card className="col-span-2 modern-card">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <AlertCircle className="h-4 w-4" />
@@ -37,12 +45,20 @@ export default function AnalyticsPage() {
 
       {hasPermission('demographics') && (
         <div className="grid gap-6 md:grid-cols-2">
-          <SimpleStatusChart />
+          <Card className="modern-card">
+            <CardContent>
+              <SimpleStatusChart />
+            </CardContent>
+          </Card>
         </div>
       )}
 
       <div className="grid gap-6 md:grid-cols-1">
-        <PerformanceMetricsChart />
+        <Card className="modern-card">
+          <CardContent>
+            <PerformanceMetricsChart />
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
